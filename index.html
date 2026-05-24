@@ -11,7 +11,7 @@
   <header class="topbar">
     <div>
       <h1>Dual Ruler Generator</h1>
-      <p>Centered cm and inch ruler artwork for 1:1 JPG export.</p>
+      <p>Centered cm and inch mask artwork for square 1:1 JPG export.</p>
     </div>
     <button id="exportButton" type="button">Export JPG</button>
   </header>
@@ -21,11 +21,11 @@
       <section>
         <h2>Export</h2>
         <label>
-          Long edge
+          Size
           <select id="exportSize">
-            <option value="1024">1024 px</option>
-            <option value="2048" selected>2048 px</option>
-            <option value="4096">4096 px</option>
+            <option value="1024">1024 x 1024 px</option>
+            <option value="2048" selected>2048 x 2048 px</option>
+            <option value="4096">4096 x 4096 px</option>
           </select>
         </label>
         <label>
@@ -35,26 +35,26 @@
       </section>
 
       <section>
-        <h2>Plate</h2>
+        <h2>Mask</h2>
         <label>
           Height (mm)
           <input id="plateHeightMm" type="number" min="12" max="80" step="0.5" value="28">
         </label>
         <label>
-          End margin (mm)
-          <input id="endMarginMm" type="number" min="0" max="20" step="0.25" value="4">
+          Typography
+          <select id="fontFamily">
+            <option value="Arial, Helvetica, sans-serif" selected>Arial</option>
+            <option value="'Arial Narrow', Arial, sans-serif">Arial Narrow</option>
+            <option value="'Roboto Condensed', Arial, sans-serif">Roboto Condensed</option>
+            <option value="'DIN Condensed', 'Arial Narrow', Arial, sans-serif">DIN Condensed</option>
+            <option value="'Times New Roman', serif">Times New Roman</option>
+            <option value="'Courier New', monospace">Courier New</option>
+            <option value="custom">Custom</option>
+          </select>
         </label>
         <label>
-          Corner radius (mm)
-          <input id="cornerRadiusMm" type="number" min="0" max="18" step="0.25" value="3">
-        </label>
-        <label>
-          Hole diameter (mm)
-          <input id="holeDiameterMm" type="number" min="0" max="20" step="0.25" value="6">
-        </label>
-        <label>
-          Hole offset from end (mm)
-          <input id="holeOffsetMm" type="number" min="4" max="35" step="0.25" value="10">
+          Custom font
+          <input id="customFontFamily" type="text" value="" placeholder="Font name">
         </label>
       </section>
 
@@ -138,7 +138,7 @@
         </label>
         <label>
           Size (mm)
-          <input id="centerTextSize" type="number" min="1" max="12" step="0.25" value="3.2">
+          <input id="centerTextSize" type="number" min="1" max="12" step="0.25" value="2.2">
         </label>
       </section>
     </aside>

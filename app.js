@@ -1,4 +1,7 @@
 const MM_PER_INCH = 25.4;
+const MASK_FOREGROUND = "#ffffff";
+const MASK_BACKGROUND = "#000000";
+
 const canvas = document.getElementById("rulerCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -6,10 +9,8 @@ const fields = [
   "exportSize",
   "jpgQuality",
   "plateHeightMm",
-  "endMarginMm",
-  "cornerRadiusMm",
-  "holeDiameterMm",
-  "holeOffsetMm",
+  "fontFamily",
+  "customFontFamily",
   "cmLength",
   "cmMajorTick",
   "cmMediumTick",
@@ -36,15 +37,21 @@ function numberValue(id) {
   return Number.parseFloat(controls[id].value) || 0;
 }
 
+function fontFamilyValue() {
+  const selected = controls.fontFamily.value;
+  const custom = controls.customFontFamily.value.trim();
+  if (selected === "custom" && custom) {
+    return `"${custom.replaceAll('"', '\\"')}", Arial, Helvetica, sans-serif`;
+  }
+  return selected === "custom" ? "Arial, Helvetica, sans-serif" : selected;
+}
+
 function getSettings() {
   return {
     exportSize: Math.round(numberValue("exportSize")),
     jpgQuality: Math.min(1, Math.max(0.7, numberValue("jpgQuality"))),
-    plateHeightMm: numberValue("plateHeightMm"),
-    endMarginMm: numberValue("endMarginMm"),
-    cornerRadiusMm: numberValue("cornerRadiusMm"),
-    holeDiameterMm: numberValue("holeDiameterMm"),
-    holeOffsetMm: numberValue("holeOffsetMm"),
+    rulerHeightMm: numberValue("plateHeightMm"),
+    fontFamily: fontFamilyValue(),
     cm: {
       lengthMm: numberValue("cmLength") * 10,
       majorTickMm: numberValue("cmMajorTick"),
@@ -70,15 +77,17 @@ function getSettings() {
 }
 
 function getGeometry(settings) {
-  const longestRulerMm = Math.max(settings.cm.lengthMm, settings.inch.lengthMm);
-  const plateLengthMm = longestRulerMm + settings.endMarginMm * 2;
-  const pxPerMm = settings.exportSize / plateLengthMm;
+  const rulerLengthMm = Math.max(settings.cm.lengthMm, settings.inch.lengthMm);
+  const pxPerMm = settings.exportSize / rulerLengthMm;
+  const rulerHeightPx = settings.rulerHeightMm * pxPerMm;
   return {
-    plateLengthMm,
+    rulerLengthMm,
+    rulerHeightPx,
     pxPerMm,
-    widthPx: settings.exportSize,
-    heightPx: Math.round(settings.plateHeightMm * pxPerMm),
+    sizePx: settings.exportSize,
     centerXPx: settings.exportSize / 2,
+    topYPx: (settings.exportSize - rulerHeightPx) / 2,
+    bottomYPx: (settings.exportSize + rulerHeightPx) / 2,
   };
 }
 
@@ -88,17 +97,6 @@ function mmToPx(mm, geometry) {
 
 function sizePx(mm, geometry) {
   return mm * geometry.pxPerMm;
-}
-
-function roundedRect(context, x, y, width, height, radius) {
-  const r = Math.min(radius, width / 2, height / 2);
-  context.beginPath();
-  context.moveTo(x + r, y);
-  context.arcTo(x + width, y, x + width, y + height, r);
-  context.arcTo(x + width, y + height, x, y + height, r);
-  context.arcTo(x, y + height, x, y, r);
-  context.arcTo(x, y, x + width, y, r);
-  context.closePath();
 }
 
 function formatNumber(value, format) {
@@ -111,17 +109,31 @@ function formatNumber(value, format) {
   return String(value);
 }
 
-function drawRotatedText(context, text, x, y, size, rotateUp = true) {
+function setTextStyle(context, size, settings, weight = 700) {
+  context.font = `${weight} ${size}px ${settings.fontFamily}`;
+  context.fillStyle = MASK_FOREGROUND;
+  context.textBaseline = "middle";
+}
+
+function textAlignForX(x, geometry) {
+  const edgeBuffer = sizePx(2.2, geometry);
+  if (x < edgeBuffer) {
+    return "left";
+  }
+  if (x > geometry.sizePx - edgeBuffer) {
+    return "right";
+  }
+  return "center";
+}
+
+function drawText(context, text, x, y, size, settings, geometry, weight = 700) {
   if (!text) {
     return;
   }
   context.save();
-  context.translate(x, y);
-  context.rotate(rotateUp ? -Math.PI / 2 : Math.PI / 2);
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.font = `700 ${size}px Arial, Helvetica, sans-serif`;
-  context.fillText(text, 0, 0);
+  setTextStyle(context, size, settings, weight);
+  context.textAlign = textAlignForX(x, geometry);
+  context.fillText(text, x, y);
   context.restore();
 }
 
@@ -134,9 +146,11 @@ function drawTick(context, x, edgeY, tickLengthPx, fromTop) {
 
 function drawCmSide(context, settings, geometry) {
   const half = settings.cm.lengthMm / 2;
-  const topY = 0;
-  const labelY = sizePx(settings.cm.majorTickMm + settings.cm.numberSizeMm + 1.8, geometry);
-  const unitY = sizePx(settings.cm.majorTickMm + settings.cm.numberSizeMm * 2.6, geometry);
+  const topY = geometry.topYPx;
+  const labelY = topY + sizePx(
+    settings.cm.majorTickMm + settings.cm.numberSizeMm * 0.55,
+    geometry
+  );
   const count = Math.round(settings.cm.lengthMm);
 
   for (let i = 0; i <= count; i += 1) {
@@ -152,33 +166,36 @@ function drawCmSide(context, settings, geometry) {
     drawTick(context, x, topY, sizePx(tickMm, geometry), true);
 
     if (isMajor) {
-      const value = Math.round(i / 10);
-      drawRotatedText(
+      drawText(
         context,
-        formatNumber(value, settings.cm.numberFormat),
+        formatNumber(Math.round(i / 10), settings.cm.numberFormat),
         x,
         labelY,
         sizePx(settings.cm.numberSizeMm, geometry),
-        true
+        settings,
+        geometry
       );
     }
   }
 
-  drawRotatedText(
+  drawText(
     context,
     settings.cm.label,
-    mmToPx(-half + settings.cm.lengthMm * 0.08, geometry),
-    unitY,
+    mmToPx(-half + Math.min(5, settings.cm.lengthMm * 0.08), geometry),
+    labelY,
     sizePx(settings.cm.numberSizeMm * 0.82, geometry),
-    true
+    settings,
+    geometry
   );
 }
 
 function drawInchSide(context, settings, geometry) {
   const half = settings.inch.lengthMm / 2;
-  const bottomY = geometry.heightPx;
-  const labelY = bottomY - sizePx(settings.inch.majorTickMm + settings.inch.numberSizeMm + 1.8, geometry);
-  const unitY = bottomY - sizePx(settings.inch.majorTickMm + settings.inch.numberSizeMm * 2.6, geometry);
+  const bottomY = geometry.bottomYPx;
+  const labelY = bottomY - sizePx(
+    settings.inch.majorTickMm + settings.inch.numberSizeMm * 0.55,
+    geometry
+  );
   const tickCount = Math.round(settings.inch.lengthInches * 16);
 
   for (let i = 0; i <= tickCount; i += 1) {
@@ -194,92 +211,54 @@ function drawInchSide(context, settings, geometry) {
     drawTick(context, x, bottomY, sizePx(tickMm, geometry), false);
 
     if (isMajor) {
-      const value = Math.round(i / 16);
-      drawRotatedText(
+      drawText(
         context,
-        formatNumber(value, settings.inch.numberFormat),
+        formatNumber(Math.round(i / 16), settings.inch.numberFormat),
         x,
         labelY,
         sizePx(settings.inch.numberSizeMm, geometry),
-        false
+        settings,
+        geometry
       );
     }
   }
 
-  drawRotatedText(
+  drawText(
     context,
     settings.inch.label,
     mmToPx(half - settings.inch.lengthMm * 0.08, geometry),
-    unitY,
+    labelY,
     sizePx(settings.inch.numberSizeMm * 0.82, geometry),
-    false
+    settings,
+    geometry
   );
 }
 
 function drawCenterText(context, settings, geometry) {
-  if (!settings.centerText) {
-    return;
-  }
-  const x = geometry.centerXPx;
-  const y = geometry.heightPx / 2;
-  context.save();
-  context.translate(x, y);
-  context.rotate(-Math.PI / 2);
-  context.textAlign = "center";
-  context.textBaseline = "middle";
-  context.font = `800 ${sizePx(settings.centerTextSizeMm, geometry)}px Arial, Helvetica, sans-serif`;
-  context.fillText(settings.centerText, 0, 0);
-  context.restore();
+  drawText(
+    context,
+    settings.centerText,
+    geometry.centerXPx,
+    (geometry.topYPx + geometry.bottomYPx) / 2,
+    sizePx(settings.centerTextSizeMm, geometry),
+    settings,
+    geometry,
+    800
+  );
 }
 
 function render() {
   const settings = getSettings();
   const geometry = getGeometry(settings);
-  canvas.width = geometry.widthPx;
-  canvas.height = geometry.heightPx;
+  canvas.width = geometry.sizePx;
+  canvas.height = geometry.sizePx;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = MASK_BACKGROUND;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  roundedRect(
-    ctx,
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-    sizePx(settings.cornerRadiusMm, geometry)
-  );
-  ctx.fillStyle = "#242b32";
-  ctx.fill();
-
-  if (settings.holeDiameterMm > 0) {
-    ctx.save();
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-    ctx.arc(
-      canvas.width - sizePx(settings.holeOffsetMm, geometry),
-      canvas.height / 2,
-      sizePx(settings.holeDiameterMm / 2, geometry),
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-    ctx.restore();
-    ctx.beginPath();
-    ctx.arc(
-      canvas.width - sizePx(settings.holeOffsetMm, geometry),
-      canvas.height / 2,
-      sizePx(settings.holeDiameterMm / 2, geometry),
-      0,
-      Math.PI * 2
-    );
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-  }
-
-  ctx.strokeStyle = "#f5f7f8";
-  ctx.fillStyle = "#f5f7f8";
+  ctx.strokeStyle = MASK_FOREGROUND;
+  ctx.fillStyle = MASK_FOREGROUND;
   ctx.lineWidth = Math.max(1, Math.round(sizePx(0.16, geometry)));
   ctx.lineCap = "square";
 
@@ -290,7 +269,7 @@ function render() {
   document.getElementById("scaleReadout").textContent =
     `1 mm = ${geometry.pxPerMm.toFixed(2)} px`;
   document.getElementById("dimensionReadout").textContent =
-    `${geometry.widthPx} x ${geometry.heightPx} px | ${geometry.plateLengthMm.toFixed(2)} x ${settings.plateHeightMm.toFixed(2)} mm`;
+    `${geometry.sizePx} x ${geometry.sizePx} px | ruler ${geometry.rulerLengthMm.toFixed(2)} x ${settings.rulerHeightMm.toFixed(2)} mm`;
 }
 
 function exportJpg() {
@@ -298,7 +277,7 @@ function exportJpg() {
   const settings = getSettings();
   const link = document.createElement("a");
   link.href = canvas.toDataURL("image/jpeg", settings.jpgQuality);
-  link.download = `dual-ruler-${settings.exportSize}px.jpg`;
+  link.download = `dual-ruler-mask-${settings.exportSize}px.jpg`;
   link.click();
 }
 
