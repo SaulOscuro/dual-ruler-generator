@@ -21,6 +21,7 @@ const fields = [
   "inchLength",
   "inchMajorTick",
   "inchMediumTick",
+  "inchQuarterTick",
   "inchMinorTick",
   "inchNumberSize",
   "inchNumberFormat",
@@ -66,6 +67,7 @@ function getSettings() {
       lengthInches: numberValue("inchLength"),
       majorTickMm: numberValue("inchMajorTick"),
       mediumTickMm: numberValue("inchMediumTick"),
+      quarterTickMm: numberValue("inchQuarterTick"),
       minorTickMm: numberValue("inchMinorTick"),
       numberSizeMm: numberValue("inchNumberSize"),
       numberFormat: controls.inchNumberFormat.value,
@@ -196,24 +198,27 @@ function drawInchSide(context, settings, geometry) {
     settings.inch.majorTickMm + settings.inch.numberSizeMm * 0.55,
     geometry
   );
-  const tickCount = Math.round(settings.inch.lengthInches * 16);
+  const tickCount = Math.round(settings.inch.lengthInches * 8);
 
   for (let i = 0; i <= tickCount; i += 1) {
-    const mm = -half + (i / 16) * MM_PER_INCH;
+    const mm = -half + (i / 8) * MM_PER_INCH;
     const x = mmToPx(mm, geometry);
-    const isMajor = i % 16 === 0;
-    const isMedium = i % 2 === 0;
+    const isMajor = i % 8 === 0;
+    const isHalf = i % 4 === 0;
+    const isQuarter = i % 2 === 0;
     const tickMm = isMajor
       ? settings.inch.majorTickMm
-      : isMedium
+      : isHalf
         ? settings.inch.mediumTickMm
-        : settings.inch.minorTickMm;
+        : isQuarter
+          ? settings.inch.quarterTickMm
+          : settings.inch.minorTickMm;
     drawTick(context, x, bottomY, sizePx(tickMm, geometry), false);
 
     if (isMajor) {
       drawText(
         context,
-        formatNumber(Math.round(i / 16), settings.inch.numberFormat),
+        formatNumber(Math.round(i / 8), settings.inch.numberFormat),
         x,
         labelY,
         sizePx(settings.inch.numberSizeMm, geometry),
