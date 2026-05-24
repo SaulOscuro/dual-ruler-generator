@@ -9,7 +9,7 @@ const fields = [
   "exportSize",
   "jpgQuality",
   "plateHeightMm",
-  "borderWidthMm",
+  "sideSpaceMm",
   "fontFamily",
   "customFontFamily",
   "cmLength",
@@ -53,7 +53,7 @@ function getSettings() {
     exportSize: Math.round(numberValue("exportSize")),
     jpgQuality: Math.min(1, Math.max(0.7, numberValue("jpgQuality"))),
     rulerHeightMm: numberValue("plateHeightMm"),
-    borderWidthMm: numberValue("borderWidthMm"),
+    sideSpaceMm: numberValue("sideSpaceMm"),
     fontFamily: fontFamilyValue(),
     cm: {
       lengthMm: numberValue("cmLength") * 10,
@@ -82,10 +82,12 @@ function getSettings() {
 
 function getGeometry(settings) {
   const rulerLengthMm = Math.max(settings.cm.lengthMm, settings.inch.lengthMm);
-  const pxPerMm = settings.exportSize / rulerLengthMm;
+  const artworkLengthMm = rulerLengthMm + settings.sideSpaceMm * 2;
+  const pxPerMm = settings.exportSize / artworkLengthMm;
   const rulerHeightPx = settings.rulerHeightMm * pxPerMm;
   return {
     rulerLengthMm,
+    artworkLengthMm,
     rulerHeightPx,
     pxPerMm,
     sizePx: settings.exportSize,
@@ -146,24 +148,6 @@ function drawTick(context, x, edgeY, tickLengthPx, fromTop) {
   context.moveTo(x, edgeY);
   context.lineTo(x, fromTop ? edgeY + tickLengthPx : edgeY - tickLengthPx);
   context.stroke();
-}
-
-function drawBorder(context, settings, geometry) {
-  const borderWidthPx = sizePx(settings.borderWidthMm, geometry);
-  if (borderWidthPx <= 0) {
-    return;
-  }
-  const halfStroke = borderWidthPx / 2;
-  const leftX = mmToPx(-geometry.rulerLengthMm / 2, geometry) + halfStroke;
-  const rightX = mmToPx(geometry.rulerLengthMm / 2, geometry) - halfStroke;
-  const topY = geometry.topYPx + halfStroke;
-  const bottomY = geometry.bottomYPx - halfStroke;
-
-  context.save();
-  context.lineWidth = borderWidthPx;
-  context.strokeStyle = MASK_FOREGROUND;
-  context.strokeRect(leftX, topY, rightX - leftX, bottomY - topY);
-  context.restore();
 }
 
 function drawCmSide(context, settings, geometry) {
@@ -287,7 +271,6 @@ function render() {
   ctx.lineWidth = Math.max(1, Math.round(sizePx(0.16, geometry)));
   ctx.lineCap = "square";
 
-  drawBorder(ctx, settings, geometry);
   drawCmSide(ctx, settings, geometry);
   drawInchSide(ctx, settings, geometry);
   drawCenterText(ctx, settings, geometry);
@@ -295,7 +278,7 @@ function render() {
   document.getElementById("scaleReadout").textContent =
     `1 mm = ${geometry.pxPerMm.toFixed(2)} px`;
   document.getElementById("dimensionReadout").textContent =
-    `${geometry.sizePx} x ${geometry.sizePx} px | ruler ${geometry.rulerLengthMm.toFixed(2)} x ${settings.rulerHeightMm.toFixed(2)} mm`;
+    `${geometry.sizePx} x ${geometry.sizePx} px | ruler ${geometry.rulerLengthMm.toFixed(2)} x ${settings.rulerHeightMm.toFixed(2)} mm | space ${settings.sideSpaceMm.toFixed(2)} mm`;
 }
 
 function exportJpg() {
