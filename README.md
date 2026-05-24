@@ -13,7 +13,7 @@ midpoint, so the inch side extends 1.2 mm farther at each end.
 - Export square masks at 1024x1024, 2048x2048, or 4096x4096 px.
 - Separate controls for centimeter and inch tick sizes, including inch quarter ticks.
 - Separate number size, number format, and unit label controls per side.
-- Editable mask height and typography.
+- Editable mask height, border thickness, and typography.
 
 ## Run Locally
 
