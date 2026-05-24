@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dual Ruler Generator</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Dual Ruler Generator</h1>
+      <p>Centered cm and inch ruler artwork for 1:1 JPG export.</p>
+    </div>
+    <button id="exportButton" type="button">Export JPG</button>
+  </header>
+
+  <main class="workspace">
+    <aside class="panel">
+      <section>
+        <h2>Export</h2>
+        <label>
+          Long edge
+          <select id="exportSize">
+            <option value="1024">1024 px</option>
+            <option value="2048" selected>2048 px</option>
+            <option value="4096">4096 px</option>
+          </select>
+        </label>
+        <label>
+          JPG quality
+          <input id="jpgQuality" type="number" min="0.7" max="1" step="0.01" value="0.95">
+        </label>
+      </section>
+
+      <section>
+        <h2>Plate</h2>
+        <label>
+          Height (mm)
+          <input id="plateHeightMm" type="number" min="12" max="80" step="0.5" value="28">
+        </label>
+        <label>
+          End margin (mm)
+          <input id="endMarginMm" type="number" min="0" max="20" step="0.25" value="4">
+        </label>
+        <label>
+          Corner radius (mm)
+          <input id="cornerRadiusMm" type="number" min="0" max="18" step="0.25" value="3">
+        </label>
+        <label>
+          Hole diameter (mm)
+          <input id="holeDiameterMm" type="number" min="0" max="20" step="0.25" value="6">
+        </label>
+        <label>
+          Hole offset from end (mm)
+          <input id="holeOffsetMm" type="number" min="4" max="35" step="0.25" value="10">
+        </label>
+      </section>
+
+      <section>
+        <h2>Centimeters</h2>
+        <label>
+          Length (cm)
+          <input id="cmLength" type="number" min="1" max="100" step="0.1" value="15">
+        </label>
+        <label>
+          Large tick (mm)
+          <input id="cmMajorTick" type="number" min="1" max="20" step="0.25" value="8">
+        </label>
+        <label>
+          Medium tick (mm)
+          <input id="cmMediumTick" type="number" min="1" max="20" step="0.25" value="5.5">
+        </label>
+        <label>
+          Small tick (mm)
+          <input id="cmMinorTick" type="number" min="0.5" max="20" step="0.25" value="3.25">
+        </label>
+        <label>
+          Number size (mm)
+          <input id="cmNumberSize" type="number" min="1" max="12" step="0.25" value="4">
+        </label>
+        <label>
+          Number format
+          <select id="cmNumberFormat">
+            <option value="normal" selected>Normal</option>
+            <option value="leading-zero">Leading zero</option>
+            <option value="hide-zero">Hide zero</option>
+          </select>
+        </label>
+        <label>
+          Label
+          <input id="cmLabel" type="text" value="cm">
+        </label>
+      </section>
+
+      <section>
+        <h2>Inches</h2>
+        <label>
+          Length (in)
+          <input id="inchLength" type="number" min="1" max="60" step="0.0625" value="6">
+        </label>
+        <label>
+          Large tick (mm)
+          <input id="inchMajorTick" type="number" min="1" max="20" step="0.25" value="8">
+        </label>
+        <label>
+          Half tick (mm)
+          <input id="inchMediumTick" type="number" min="1" max="20" step="0.25" value="5.5">
+        </label>
+        <label>
+          Small tick (mm)
+          <input id="inchMinorTick" type="number" min="0.5" max="20" step="0.25" value="3.25">
+        </label>
+        <label>
+          Number size (mm)
+          <input id="inchNumberSize" type="number" min="1" max="12" step="0.25" value="4">
+        </label>
+        <label>
+          Number format
+          <select id="inchNumberFormat">
+            <option value="normal" selected>Normal</option>
+            <option value="leading-zero">Leading zero</option>
+            <option value="hide-zero">Hide zero</option>
+          </select>
+        </label>
+        <label>
+          Label
+          <input id="inchLabel" type="text" value="INCHES">
+        </label>
+      </section>
+
+      <section>
+        <h2>Center Text</h2>
+        <label>
+          Text
+          <input id="centerText" type="text" value="MADE IN CHINA">
+        </label>
+        <label>
+          Size (mm)
+          <input id="centerTextSize" type="number" min="1" max="12" step="0.25" value="3.2">
+        </label>
+      </section>
+    </aside>
+
+    <section class="preview">
+      <div class="previewMeta">
+        <span id="scaleReadout"></span>
+        <span id="dimensionReadout"></span>
+      </div>
+      <div class="canvasWrap">
+        <canvas id="rulerCanvas"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
