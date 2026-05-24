@@ -202,7 +202,7 @@ function drawInchSide(context, settings, geometry) {
     const mm = -half + (i / 16) * MM_PER_INCH;
     const x = mmToPx(mm, geometry);
     const isMajor = i % 16 === 0;
-    const isMedium = i % 8 === 0;
+    const isMedium = i % 2 === 0;
     const tickMm = isMajor
       ? settings.inch.majorTickMm
       : isMedium
